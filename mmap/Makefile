@@ -7,9 +7,8 @@ all: jello
 
 jello:
 
-test:
+test: jello
 	$(SHELL) test.sh
 
 clean: hello.txt
 	rm -f jello
-	echo Hello > hello.txt
