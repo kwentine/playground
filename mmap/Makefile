@@ -1,5 +1,6 @@
 SHELL=/bin/bash
 CC=gcc
+CFLAGS=-O0
 
 .SILENT: test clean
 
@@ -11,5 +12,5 @@ test: jello
 clean: hello.txt
 	rm -f jello
 
-page.txt:
-	dd if=<(yes 1 | tr -d '\n') of=$@ bs=512 count=2
+halfpage.txt:
+	dd if=<(yes 1 | tr -d '\n') of=$@ bs=512 count=4
