@@ -1,0 +1,70 @@
+#+TITLE: User namespaces
+
+* Objectives
+
+- Explore the =--userns= Podman option
+
+
+| Flag     | host | auto | keep-id | nomap |
+|----------+------+------+---------+-------|
+| rootless |      |      |         |       |
+| root     |      |      |         |       |
+
+
+- Create userns namespace
+- Get the userns of a process
+- Trace the lineage of a userns
+- Relationship with capabilities
+- Effect on filesystem operations
+
+
+* Notes
+
+- User namespace starts with an empty mapping
+- First process in a userns has a full set of capabilities
+- A process belongs to a single userns
+  - But process capabilities can be evaluated in any userns
+- A user mapping exists between a userns and its parent
+  - And thus all its ancestors, by transitivity
+
+** Filesystem interaction
+*** Rootless
+
+The container filesystem is owned by the user running podman.
+This can be seen, from the root userns, by running:
+#+begin_src sh
+ls -l /proc/${pid}/root/
+#+end_src
+
+The =home= directory is owned by user =589821=,
+that is in the map range,
+but appears as =nobody= in the container which I find curious.
+
+#+begin_src example
+$ cat /proc/53794/uid_map
+         0       1000          1
+         1     524288      65536
+
+$ echo $((524288 + 65536))
+589824
+
+$ ls -l /proc/53794/root/home
+drwxr-xr-x. 1 589821 589821 0 Sep 26  2024 /proc/53794/root/home
+
+$ podman exec sleeper ls -ld /home
+drwxr-xr-x    1 nobody   nobody           0 Sep 26  2024 /home
+#+end_src
+
+Doing the maths it turns out that =589821= corresponds to =65534= in the container,
+which is by convention the =nobody= user.
+
+#+begin_src example
+$ podman exec sleeper sed -i s/nobody/anybody/ /etc/passwd
+$ podman exec sleeper ls -ldi /home
+1234781 drwxr-xr-x    1 anybody  nobody           0 Sep 26  2024 /home
+#+end_src
+
+There is an ambiguity here: no way to tell,
+from the container's perspective,
+if a file belongs to the mapped =nobody= user,
+or by an unmapped host user.
