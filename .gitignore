@@ -8,3 +8,7 @@
 
 # Unignore all dirs
 !*/
+
+*.fd
+*.qcow2
+*.iso
