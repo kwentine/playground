@@ -1,0 +1,29 @@
+#+TITLE: Experiments with firmware, booting and disks
+
+Links:
+- https://www.kraxel.org/blog/
+  - https://www.kraxel.org/blog/2022/05/edk2-virt-quickstart/
+- Tianocore Github
+  - [[https://github.com/tianocore/edk2/blob/master/OvmfPkg/README][README]]
+  - [[https://github.com/tianocore/tianocore.github.io/wiki/How-to-run-OVMF][How to run OVMF]] ?
+- [[https://rust-osdev.github.io][Rust OSdev]]
+- [[https://joonas.fi/2021/02/uefi-pc-boot-process-and-uefi-with-qemu/][PC boot process and UEFI with QEMU]]
+
+Command I experimented with:
+#+begin_src sh
+          qemu-system-x86_64 -accel kvm -smp 4 -m 8G \
+            -boot menu=on,splash-time=5000 \
+            -bios OVMF_CODE.fd \
+            -cdrom /var/vms/iso/rhel-10.0-x86_64-dvd.iso \
+            "${img}"
+#+end_src
+
+- I am not persisting UEFI variables
+- With img=rhel.qcow2
+  - firmware boots from DVD by default
+  - when disk boot option is selected once from the UEFI menu,
+    it is remembered, even though I do not provide =OVMF_VARS.fd=
+- With img=arch.qcow2
+  - firmware boots from disk by default
+
+A file in the ESP called =NvVars= may influence the boot order in the absence of NVRAM variables.
