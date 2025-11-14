@@ -28,6 +28,7 @@
   - And thus all its ancestors, by transitivity
 
 ** Filesystem interaction
+
 *** Rootless
 
 The container filesystem is owned by the user running podman.
@@ -68,3 +69,13 @@ There is an ambiguity here: no way to tell,
 from the container's perspective,
 if a file belongs to the mapped =nobody= user,
 or by an unmapped host user.
+
+** A simple program
+
+- Print context
+  - [ ] user namespace
+  - [ ] process user credentials
+  - [ ] process capabilities
+- Create a new user namespace
+  - =unshare= or =clone=
+- Print context anew
