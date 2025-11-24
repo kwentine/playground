@@ -1,21 +1,14 @@
-use std::io;
-use std::io::Read;
+use std::io::{self, Read};
 use std::ascii;
 
-fn main() {
+fn main() -> io::Result<()> {
     println!("Press 'q' to quit.");
-    let mut c: [u8; 1] = [0];
-    let mut stdin = io::stdin();
-    loop {
-        let n = stdin.read(&mut c).unwrap();
-        if n == 0 {
+    for b in io::stdin().bytes() {
+        let c = b?;
+        println!("{:08b} {:02x} {:>3}  {}", c, c, c, ascii::escape_default(c));
+        if c == b'q' {
             break
         }
-        if c[0] == 0x71 {
-            break
-        }
-        let b = c[0];
-        let e = ascii::escape_default(c[0]);
-        println!("{:>3} {:0>2x} {}", b, b, e);
     }
+    Ok(())
 }
