@@ -20,10 +20,11 @@ void restore(struct termios *saved) {
 }
 
 int main() {
-  printf("To quit, enter:\n");
-  printf(FMT, 'q', 'q', 'q', 'q');
-
   struct termios saved, raw;
+  int c;
+
+  printf("To quit, press 'q'.\n");
+  printf("%5s %10s %5s\n\r", "Hex", "Bin", "Dec");
 
   if (tcgetattr(STDIN_FILENO, &saved) == -1)
     errExit("tcgetattr");
@@ -33,23 +34,29 @@ int main() {
   raw.c_iflag &= ~(BRKINT | ICRNL | IGNBRK | IGNCR | INLCR |
                    INPCK | ISTRIP | IXON | PARMRK);
   raw.c_oflag &= ~OPOST;
-  raw.c_cc[VMIN] = 1;                   /* Character-at-a-time input */
-  raw.c_cc[VTIME] = 0;                  /* with blocking */
+  // Block on read and return as soon as one character is available
+  raw.c_cc[VMIN] = 1;
+  raw.c_cc[VTIME] = 0;
 
   if (tcsetattr(0, TCSAFLUSH, &raw) == -1)
     errExit("tcsetattr");
 
-  unsigned char c;
-  ssize_t n;
-  while (n = read(STDIN_FILENO, &c, 1)) {
-    if (n == -1) {
-      restore(&saved);
-      errExit("read");
+  while ((c = getchar()) != EOF) {
+    printf("%5x %10.08b %5d", c, c, c);
+    if (c > 127) {
+      printf("  ??\r\n");
+    } else if (c < 0x20 || c == 0x7f) {
+      printf("  ^%c\r\n", (c + 0x40) % 0x80);
+    } else {
+      printf("  %2c\r\n", c);
     }
     if (c == 'q')
       break;
-    printf(FMT, c, c, c, c);
   }
-  restore(&saved);
+
+  /* Restore terminal state */
+  if (tcsetattr(0, TCSAFLUSH, &saved) == -1)
+    errExit("tcsetattr");
+
   exit(0);
 }
