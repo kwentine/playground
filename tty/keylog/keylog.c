@@ -3,37 +3,44 @@
   Exit when 'q' is pressed.
 */
 
-#include <stdlib.h>
+#include <ctype.h>
 #include <stdio.h>
 #include <termios.h>
+#include <stdlib.h>
 #include <errno.h>
-#include <unistd.h>
-#include <string.h>
 
-#define errExit(syscall) printf("ERROR: " syscall ": %s\n", strerror(errno)), exit(1)
+struct termios savedTermios;
 
-char *FMT = "0x%-6x %-10.08b %-10d %c\n\r";
+void errExit(char *s) {
+  perror(s);
+  exit(1);
+}
 
-void restore(struct termios *saved) {
-  if (tcsetattr(0, TCSAFLUSH, saved) == -1)
+void restore() {
+  if (tcsetattr(0, TCSAFLUSH, &savedTermios) == -1)
     errExit("tcsetattr");
+  printf("Restored terminal state, bidding goodbye.\n");
 }
 
 int main() {
-  struct termios saved, raw;
+  struct termios raw;
   int c;
 
-  printf("To quit, press 'q'.\n");
-  printf("%5s %10s %5s\n\r", "Hex", "Bin", "Dec");
+  printf("Logging keystrokes. To quit, press 'q'.\n\n");
+  printf("%5s %5s %10s %5s\n\r", "Hex", "Oct", "Bin", "Dec");
 
-  if (tcgetattr(STDIN_FILENO, &saved) == -1)
+  if (atexit(restore) != 0)
+    errExit("atexit");
+
+  if (tcgetattr(0, &savedTermios) == -1)
     errExit("tcgetattr");
 
-  raw = saved;
+  raw = savedTermios;
   raw.c_lflag &= ~(ICANON | ISIG | IEXTEN | ECHO);
   raw.c_iflag &= ~(BRKINT | ICRNL | IGNBRK | IGNCR | INLCR |
                    INPCK | ISTRIP | IXON | PARMRK);
   raw.c_oflag &= ~OPOST;
+
   // Block on read and return as soon as one character is available
   raw.c_cc[VMIN] = 1;
   raw.c_cc[VTIME] = 0;
@@ -42,21 +49,16 @@ int main() {
     errExit("tcsetattr");
 
   while ((c = getchar()) != EOF) {
-    printf("%5x %10.08b %5d", c, c, c);
-    if (c > 127) {
+    printf("%5x %5o %10.08b %5d", c, c, c, c);
+    if (!isascii(c)) {
       printf("  ??\r\n");
-    } else if (c < 0x20 || c == 0x7f) {
-      printf("  ^%c\r\n", (c + 0x40) % 0x80);
+    } else if (iscntrl(c)) {
+      printf("  ^%c\r\n",  c ^ 0x40);
     } else {
       printf("  %2c\r\n", c);
     }
     if (c == 'q')
       break;
   }
-
-  /* Restore terminal state */
-  if (tcsetattr(0, TCSAFLUSH, &saved) == -1)
-    errExit("tcsetattr");
-
-  exit(0);
+  return 0;
 }
