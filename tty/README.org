@@ -1,0 +1,22 @@
+#+TITLE: TTY investigations
+- Languages :: C, Rust, Python
+
+Some real experiments around virtual terminals.
+
+* Key logger
+
+Put standard input in raw mode, and echo all characters received.
+Exit when a =q= is encountered, and restore terminal state
+
+* Other ideas
+
+- =cat_pty=
+  - Create a =pty= pair, and run =cat=
+  - Exit when =q= is encountered, or when =cat= returns, and restore
+
+- =sh_pty=
+  - Run a shell, instead of =cat=
+
+- Dyptik, a horizontal terminal duplexer
+  - Each shell gets notified of winsize
+  - Arrow keys decide which shell gets input (border gets highlighted)
