@@ -19,7 +19,7 @@ void errExit(char *s) {
 void restore() {
   if (tcsetattr(0, TCSAFLUSH, &savedTermios) == -1)
     errExit("tcsetattr");
-  printf("Restored terminal state, bidding goodbye.\n");
+  printf("Restored terminal state. Bidding goodbye.\n");
 }
 
 int main() {
