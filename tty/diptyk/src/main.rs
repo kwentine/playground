@@ -2,40 +2,29 @@
 use std::io::{self, Write};
 
 fn main() -> io::Result<()> {
-
     let mut buff = LineBuffer::new(3);
     buff.add("One".to_string());
     buff.add("Two".to_string());
     buff.add("Three".to_string());
     buff.add("Four".to_string());
     let mut screen = io::stdout();
-
-    // Erase screen
-    screen.write(b"\x1b\x5b2J")?;
-
-    // Draw buffer
+    clear_screen(&mut screen)?;
     draw(&buff, 1, &mut screen)?;
+    Ok(())
+}
 
+
+fn clear_screen(screen: &mut io::Stdout) -> io::Result<()> {
+    screen.write(b"\x1b\x5b2J")?;
     Ok(())
 }
 
 // Draw the contents of a circular buffer to screen, starting from a given row.
 fn draw(buff: &LineBuffer, start_row: u8, screen: &mut io::Stdout) -> io::Result<()> {
-    let l = buff.len;
-    let mut next = (buff.last_idx + 1) % l;
     write!(screen, "\x1b\x5b{}d", start_row)?;
-    loop {
-        match &buff.lines[next] {
-            Some(s) => {
-                screen.write(s.as_bytes())?;
-                screen.write(b"\n")?;
-            },
-            None => {},
-        }
-        if next == buff.last_idx {
-            break
-        }
-        next = (next + 1) % l;
+    for s in &buff.lines() {
+        screen.write(s.as_bytes())?;
+        screen.write(b"\n")?;
     }
     return Ok(());
 }
@@ -59,5 +48,20 @@ impl LineBuffer {
     fn add(&mut self, line: String) {
         self.last_idx = (self.last_idx + 1) % self.len;
         self.lines[self.last_idx] = Some(line);
+    }
+
+    fn lines(&self) -> Vec<&String> {
+        let mut res = Vec::with_capacity(self.len);
+        let mut next = (self.last_idx + 1) % self.len;
+        loop {
+            match &self.lines[next] {
+                Some(s) => res.push(s),
+                None => {},
+            }
+            if next == self.last_idx {
+                return res;
+            }
+            next = (next + 1) % self.len;
+        }
     }
 }
