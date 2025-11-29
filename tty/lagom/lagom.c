@@ -11,14 +11,21 @@ int read_line(char buff[MAXLINE]) {
   int i = 0, c;
   while ((c = getchar()) != EOF && c != '\n' && i < MAXLINE - 2)
       buff[i++] = c;
-  if (c == '\n')
+  if (i > 0 || c == '\n')
     buff[i++] = '\n';
-  buff[i] = '\0'
+  buff[i] = '\0';
   return i;
 }
 
+// Clear screen and move cursor to given row
+void reset(int row) {
+  printf("\x1b[2J\x1b[%dd", row);
+}
+
+
 int main() {
   int n;
+  reset(10);
   while (n = read_line(scroll_buffer[0]))
-    printf("%s\n", scroll_buffer[0]);
+    printf("%s", scroll_buffer[0]);
 }
