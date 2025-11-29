@@ -4,15 +4,17 @@
 #include <fcntl.h>
 #include <termios.h>
 
+#define DEBUG 0
 #define MAXLINE 1024
-#define SCROLL_ROWS 32
+#define SCROLL_ROWS 48
 #define DISPLAY_ROWS 16
-#define MARGIN_TOP 10
+#define MARGIN_TOP 1
 #define next(idx) (idx + 1) % SCROLL_ROWS
-#define add(idx, incr) (idx + incr) % SCROLL_ROWS
+#define add(idx, incr) (idx + incr + SCROLL_ROWS) % SCROLL_ROWS
 
 struct termios saved_termios;
 static char scroll_buffer[SCROLL_ROWS][MAXLINE];
+static int show_idx = 0;
 static int read_idx = 0;
 static int write_idx = 0;
 
@@ -35,7 +37,7 @@ void reset(int row) {
 }
 
 void draw(int row) {
-  int i = 0, j = read_idx;
+  int i = 0, j = show_idx;
   reset(row);
   for (i = 0; i < DISPLAY_ROWS; i++, j = next(j)) {
     if (*scroll_buffer[j] == '\0')
@@ -49,13 +51,31 @@ void init() {
   int i;
   for (i = 0; i < SCROLL_ROWS; i++)
     consume_line(scroll_buffer[i]);
-  read_idx = write_idx = 0;
+  read_idx = write_idx = show_idx = 0;
 }
 
 void refill() {
+  int i;
+  // Only refill if the display window contains a stale line.
+  for (i = 1; i < DISPLAY_ROWS; i++)
+    if (add(show_idx, i) == write_idx)
+      break;
+
+  if (i == DISPLAY_ROWS)
+    return;
+
+  if (DEBUG) {
+    printf("Refill...\n");
+    sleep(2);
+  }
+
+  // Bump base index
+  while (add(read_idx, DISPLAY_ROWS) != show_idx)
+    read_idx = add(read_idx, 1);
+
   while (write_idx != read_idx) {
     consume_line(scroll_buffer[write_idx]);
-    write_idx = next(write_idx);
+    write_idx = add(write_idx, 1);
   }
 }
 
@@ -107,6 +127,9 @@ void interactive() {
   while(true) {
     draw(MARGIN_TOP);
 
+    if (DEBUG)
+      printf("(r=%d w=%d d=%d)\n", read_idx, write_idx, show_idx);
+
     if ((n = read(fd, &c, 1)) == -1)
       err_exit("read");
 
@@ -114,9 +137,11 @@ void interactive() {
       break;
 
     if (c == 'n')
-      read_idx = add(read_idx, 1);
+      show_idx = add(show_idx, 1);
+    else if (c == 'p' && show_idx != read_idx)
+      show_idx = add(show_idx, -1);
     else if (c == 'f')
-      read_idx = add(read_idx, DISPLAY_ROWS - 1);
+      show_idx = add(show_idx, DISPLAY_ROWS - 1);
     refill();
   }
   if (tcsetattr(fd, TCSAFLUSH, &saved_termios) == -1)
