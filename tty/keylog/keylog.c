@@ -29,11 +29,11 @@ int main() {
   printf("Logging keystrokes. To quit, press 'q'.\n\n");
   printf("%5s %5s %10s %5s\n\r", "Hex", "Oct", "Bin", "Dec");
 
-  if (atexit(restore) != 0)
-    errExit("atexit");
-
   if (tcgetattr(0, &savedTermios) == -1)
     errExit("tcgetattr");
+
+  if (atexit(restore) != 0)
+    errExit("atexit");
 
   raw = savedTermios;
   raw.c_lflag &= ~(ICANON | ISIG | IEXTEN | ECHO);
