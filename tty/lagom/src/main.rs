@@ -75,3 +75,14 @@ fn refill(stdin: &io::Stdin, line_buffer: &mut [String], read_idx: usize, mut wr
     }
     return write_idx;
 }
+
+fn ring_diff(gt: usize, lt: usize, size: usize) -> usize {
+    debug_assert!(size > 0);
+    debug_assert!(gt < size && lt < size);
+
+    if gt >= lt {
+        gt - lt
+    } else {
+        size - (lt - gt)
+    }
+}
