@@ -20,14 +20,14 @@ fn main() {
 fn play(stdin: &io::Stdin, line_buffer: &mut [String], mut read_idx: usize, mut write_idx: usize) {
     let pause = time::Duration::from_millis(500);
     while line_buffer[read_idx].len() != 0 {
-        draw(&line_buffer, &read_idx);
+        draw(&line_buffer, read_idx);
         thread::sleep(pause);
         write_idx = refill(&stdin, line_buffer, read_idx, write_idx);
         read_idx = step(1, &line_buffer, read_idx, write_idx);
     }
 }
 
-fn draw(line_buffer: &[String], read_idx: &usize) {
+fn draw(line_buffer: &[String], read_idx: usize) {
     print!("\x1b[2J\x1b[1d");
     let size = line_buffer.len();
     for i in 0..DISPLAY_SIZE {
