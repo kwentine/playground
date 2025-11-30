@@ -53,7 +53,7 @@ fn step(
         i += 1;
         next = (next + 1) % size;
     }
-    return read_idx + i;
+    return (read_idx + i) % size;
 }
 
 fn refill(stdin: &io::Stdin, line_buffer: &mut [String], read_idx: usize, mut write_idx: usize) -> usize {
