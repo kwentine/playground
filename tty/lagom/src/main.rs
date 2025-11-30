@@ -32,7 +32,7 @@ fn draw(line_buffer: &[String], read_idx: &usize) {
     let size = line_buffer.len();
     for i in 0..DISPLAY_SIZE {
         let line = &line_buffer[(read_idx + i) % size];
-        if line.len() == 0 {
+        if line.is_empty() {
             print!("{}", EMPTY);
         } else {
             print!(" {line}");
