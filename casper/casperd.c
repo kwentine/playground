@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
+#include <ctype.h>
 
 void err_exit(const char *msg) {
   fprintf(stderr, "ERROR:%s:%s: %s\n",
@@ -48,6 +49,9 @@ int main() {
   socklen_t size = sizeof(client);
   char buff[1024] = {0};
   ssize_t n_read = 0;
+  // This will be read from configuration
+  int to_lower = 1;
+  size_t i = 0;
   for (;;) {
     clientfd = accept(sockfd, (struct sockaddr *) &client, &size);
     if (clientfd == -1)
@@ -55,6 +59,10 @@ int main() {
 
     printf("Connection from: %d\n", client.sin_port);
     while ( (n_read = read_line(clientfd, buff, 1024)) > 0) {
+      for (i = 0; i < n_read; i++) {
+        if (isupper(buff[i]))
+          buff[i] = buff[i] - ('A' - 'a');
+      }
       if (write(clientfd, buff, n_read) == -1)
         err_exit("write");
     }
