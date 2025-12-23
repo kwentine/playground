@@ -22,7 +22,8 @@ void err_exit(const char *msg) {
   exit(1);
 }
 
-ssize_t read_line (FILE *, char *, size_t);
+ssize_t read_stream_line (FILE *, char *, size_t);
+int read_line_buf(rlbuf_t *, char *, size_t);
 
 int main() {
   int listenfd, connfd;
@@ -65,7 +66,7 @@ int main() {
       err_exit("fdopen");
 
     printf("Connection from: %d\n", clientaddr.sin_port);
-    while ( (n_read = read_line(stream, buff, MAX_LINE)) > 0) {
+    while ( (n_read = read_stream_line(stream, buff, MAX_LINE)) > 0) {
       for (i = 0; i < n_read; i++) {
         if (isupper(buff[i]))
           buff[i] = buff[i] - ('A' - 'a');
@@ -84,7 +85,7 @@ int main() {
   }
 }
 
-ssize_t read_line(FILE *stream, char *buff, size_t lim) {
+ssize_t read_stream_line(FILE *stream, char *buff, size_t lim) {
   int c, i = 0;
   while (i < lim - 1 && (c = getc(stream)) != EOF && c != '\n')
     buff[i++] = c;
@@ -94,7 +95,7 @@ ssize_t read_line(FILE *stream, char *buff, size_t lim) {
   return i;
 }
 
-ssize_t read_line_discard(FILE *stream, char *buff, size_t lim) {
+ssize_t read_stream_line_discard(FILE *stream, char *buff, size_t lim) {
   int c, i = 0;
   while (i < lim - 1 && (c = getc(stream)) != EOF && c != '\n')
     buff[i++] = c;
