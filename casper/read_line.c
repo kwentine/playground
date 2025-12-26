@@ -1,16 +1,4 @@
-#include <errno.h>
-#include <stddef.h>
-#include <stdio.h>
-#include <unistd.h>
-
-#define SIZE 8
-
-typedef struct {
-  int fd;
-  char buf[SIZE];
-  size_t len;
-  size_t next;
-} rlbuf_t;
+#include "casperd.h"
 
 rlbuf_t *rlbuf_init(int fd, rlbuf_t *rlbuf) {
   if (rlbuf == NULL) {
@@ -20,6 +8,7 @@ rlbuf_t *rlbuf_init(int fd, rlbuf_t *rlbuf) {
   rlbuf->fd = fd;
   rlbuf->len = 0;
   rlbuf->next = 0;
+  return rlbuf;
 }
 
 int read_line_buf(rlbuf_t *rlbuf, char *buff, size_t n) {
@@ -38,7 +27,7 @@ int read_line_buf(rlbuf_t *rlbuf, char *buff, size_t n) {
 
     if (rlbuf->next == rlbuf->len) {
       printf("Refill needed!\n");
-      n_read = read(rlbuf->fd, &rlbuf->buf, SIZE);
+      n_read = read(rlbuf->fd, &rlbuf->buf, RLBUF_SIZE);
       if (n_read == -1)
         return -1;
       if (n_read == 0) {
@@ -99,4 +88,19 @@ ssize_t read_line (int fd, char *buff, size_t n) {
 
   *buff = '0';
   return tot_read;
+}
+
+// Use standard IO stream
+ssize_t read_line_stream(FILE *stream, char *buff, size_t lim, int discard) {
+  int c;
+  size_t i = 0;
+  while (i < lim - 1 && (c = getc(stream)) != EOF && c != '\n')
+    buff[i++] = c;
+  if (i == lim - 1 && discard == 1)
+    while ((c = getc(stream)) != EOF && c != '\n')
+      ;
+  if (i < lim - 1 && c == '\n')
+    buff[i++] = '\n';
+  buff[i] = '\0';
+  return i;
 }

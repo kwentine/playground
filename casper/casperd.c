@@ -1,15 +1,5 @@
-#define _GNU_SOURCE
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <errno.h>
-#include <string.h>
-#include <ctype.h>
+#include "casperd.h"
 
-#define SA struct sockaddr
 #define LISTENQ 5
 #define PORT_NUM 8000
 #define MAX_LINE 8
@@ -22,88 +12,74 @@ void err_exit(const char *msg) {
   exit(1);
 }
 
-ssize_t read_stream_line (FILE *, char *, size_t);
-int read_line_buf(rlbuf_t *, char *, size_t);
+void handle_client(int);
+void serve(int);
 
 int main() {
-  int listenfd, connfd;
-  struct sockaddr_in servaddr, clientaddr;
+  int listenfd;
+  struct sockaddr_in serv_addr;
   char ip_str[INET_ADDRSTRLEN];
 
   listenfd = socket(AF_INET, SOCK_STREAM, 0);
   if (listenfd == -1)
     err_exit("socket");
 
-  bzero(&servaddr, sizeof(servaddr));
-  servaddr.sin_family = AF_INET;
-  inet_pton(AF_INET, "127.0.0.1", &servaddr.sin_addr);
-  servaddr.sin_port = htons(PORT_NUM);
+  bzero(&serv_addr, sizeof(serv_addr));
+  serv_addr.sin_family = AF_INET;
+  inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr);
+  serv_addr.sin_port = htons(PORT_NUM);
 
-  if (bind(listenfd, (SA *) &servaddr, sizeof(servaddr)) == -1)
+  if (bind(listenfd, (SA *) &serv_addr, sizeof(serv_addr)) == -1)
     err_exit("bind");
 
   if (listen(listenfd, LISTENQ) == -1)
     err_exit("listen");
 
   printf("Casperd, friendly little daemon, listens on: %s:%d\n",
-         inet_ntop(AF_INET, &servaddr.sin_addr, ip_str, INET_ADDRSTRLEN),
+         inet_ntop(AF_INET, &serv_addr.sin_addr, ip_str, INET_ADDRSTRLEN),
          PORT_NUM);
+  serve(listenfd);
+}
 
-  socklen_t size = sizeof(clientaddr);
-  char buff[MAX_LINE] = {0};
-  ssize_t n_read = 0;
-  // This will be read from configuration
-  int to_lower = 1;
-  size_t i = 0;
-  FILE *stream;
+void serve(int fd) {
+  int connfd;
+  struct sockaddr_in client_addr;
+  socklen_t size = sizeof(client_addr);
+  char client_addr_str[INET_ADDRSTRLEN];
 
   for ( ; ; ) {
-    connfd = accept(listenfd, (SA *) &clientaddr, &size);
+    connfd = accept(fd, (SA *) &client_addr, &size);
     if (connfd == -1)
       err_exit("accept");
 
-    if ((stream = fdopen(connfd, "r")) == NULL)
-      err_exit("fdopen");
+    printf("Connection from: %s:%d\n",
+           inet_ntop(AF_INET,
+                     &client_addr.sin_addr,
+                     client_addr_str,
+                     INET_ADDRSTRLEN),
+           client_addr.sin_port);
 
-    printf("Connection from: %d\n", clientaddr.sin_port);
-    while ( (n_read = read_stream_line(stream, buff, MAX_LINE)) > 0) {
-      for (i = 0; i < n_read; i++) {
-        if (isupper(buff[i]))
-          buff[i] = buff[i] - ('A' - 'a');
-      }
-      if (write(connfd, buff, n_read) == -1)
-        err_exit("write");
-    }
-
-    if (n_read  == -1)
-      err_exit("read_line");
+    handle_client(connfd);
 
     if (close(connfd) == -1)
       err_exit("close");
-
     printf("Connection closed.\n");
   }
 }
 
-ssize_t read_stream_line(FILE *stream, char *buff, size_t lim) {
-  int c, i = 0;
-  while (i < lim - 1 && (c = getc(stream)) != EOF && c != '\n')
-    buff[i++] = c;
-  if (c == '\n')
-    buff[i++] = '\n';
-  buff[i] = '\0';
-  return i;
-}
+void handle_client(int fd) {
+  char buff[MAX_LINE];
+  int i;
+  ssize_t n_read;
 
-ssize_t read_stream_line_discard(FILE *stream, char *buff, size_t lim) {
-  int c, i = 0;
-  while (i < lim - 1 && (c = getc(stream)) != EOF && c != '\n')
-    buff[i++] = c;
-  if (i == lim - 1)
-    while ((c = getc(stream)) != EOF && c != '\n')
-      ;
-  else if (c == '\n')
-    buff[i++] = '\n';
-  buff[i] = '\0';
-  return i;
+  while ( (n_read = read_line(fd, buff, MAX_LINE)) > 0) {
+    for (i = 0; i < n_read; i++) {
+      if (isupper(buff[i]))
+        buff[i] = buff[i] - ('A' - 'a');
+    }
+    if (write(fd, buff, n_read) == -1)
+      err_exit("write");
+  }
+  if (n_read  == -1)
+    err_exit("read_line");
 }
