@@ -1,4 +1,5 @@
 #include "casperd.h"
+#include "read_line.h"
 
 #define LISTENQ 5
 #define PORT_NUM 8000
@@ -71,8 +72,12 @@ void handle_client(int fd) {
   char buff[MAX_LINE];
   int i;
   ssize_t n_read;
+  rlbuf_t rlbuf;
 
-  while ( (n_read = read_line(fd, buff, MAX_LINE)) > 0) {
+  if (rlbuf_init(fd, &rlbuf) == NULL)
+    err_exit("rlbuf_init");
+
+  while ( (n_read = read_line_buf(&rlbuf, buff, MAX_LINE)) > 0) {
     for (i = 0; i < n_read; i++) {
       if (isupper(buff[i]))
         buff[i] = buff[i] - ('A' - 'a');

@@ -1,4 +1,4 @@
-#include "casperd.h"
+#include "read_line.h"
 
 rlbuf_t *rlbuf_init(int fd, rlbuf_t *rlbuf) {
   if (rlbuf == NULL) {
@@ -13,7 +13,6 @@ rlbuf_t *rlbuf_init(int fd, rlbuf_t *rlbuf) {
 
 int read_line_buf(rlbuf_t *rlbuf, char *buff, size_t n) {
 
-  ssize_t n_read;
   size_t tot_read;
   char c;
 
@@ -26,29 +25,21 @@ int read_line_buf(rlbuf_t *rlbuf, char *buff, size_t n) {
   for ( ; ; ) {
 
     if (rlbuf->next == rlbuf->len) {
-      printf("Refill needed!\n");
-      n_read = read(rlbuf->fd, &rlbuf->buf, RLBUF_SIZE);
-      if (n_read == -1)
+      rlbuf->len = read(rlbuf->fd, &rlbuf->buf, RLBUF_SIZE);
+      if (rlbuf->len == -1)
         return -1;
-      if (n_read == 0) {
-        if (tot_read == 0)
-          return 0;
+      if (rlbuf->len == 0)
         break;
-      }
-      rlbuf->len = n_read;
       rlbuf->next = 0;
-    } else {
-      c = rlbuf->buf[rlbuf->next++];
-      if (tot_read < n - 1) {
-        *buff++ = c;
-        tot_read++;
-      }
-      if (c == '\n')
-        break;
     }
+    c = rlbuf->buf[rlbuf->next++];
+    if (tot_read < n - 1)
+      buff[tot_read++] = c;
+    if (c == '\n')
+      break;
   }
-
-  *buff = '0';
+  if (tot_read > 0)
+    buff[tot_read] = '\0';
   return tot_read;
 }
 
