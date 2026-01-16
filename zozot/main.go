@@ -10,22 +10,27 @@ type Env struct {
 	frame map[string]any
 }
 
-func (e Env) get(key string) (any, bool) {
-	val, ok :=  e.frame[key]
-	if !ok && e.parent != nil {
-		return e.parent.get(key)
+func (e *Env) get(key string) (any, bool) {
+	for curr := e; curr != nil; curr = curr.parent {
+		if val, ok :=  e.frame[key]; ok {
+			return val, true
+		}
 	}
-	return val, ok
+	return nil, false
 }
 
-func (e Env) bind(params []string, values []any) Env {
+func (e *Env) bind(params []string, values []any) *Env {
 	if len(params) != len(values) {
-		log.Fatalf("ERORR: wrong number of arguments: %s %s", params, values)
+		log.Fatalf("ERORR: wrong number of arguments: expected %d got %d", len(params), len(values))
+	}
+	var child = &Env{
+		parent: e,
+		frame: map[string]any{},
 	}
 	for i, key := range params {
-		e.frame[key] = values[i]
+		child.frame[key] = values[i]
 	}
-	return e
+	return child
 }
 
 type ListExpr []any
@@ -41,18 +46,15 @@ type Lambda struct {
 	body any
 }
 
-func evLambda(expr LambdaExpr, parent *Env) Lambda {
+func evLambda(expr LambdaExpr, env *Env) Lambda {
 	return Lambda{
-		&Env{
-			parent,
-			map[string]any{},
-		},
+		env,
 		expr.params,
 		expr.body,
 	}
 }
 
-func evSym(s string, env Env) any {
+func evSym(s string, env *Env) any {
 	v, ok := env.get(s)
 	if !ok {
 		log.Fatal("ERROR: Unbound variable:", s)
@@ -60,9 +62,9 @@ func evSym(s string, env Env) any {
 	return v
 }
 
-func evList(expr []any, env Env) any {
+func evList(expr []any, env *Env) ListExpr {
 	if len(expr) == 0 {
-		return []any{}
+		return ListExpr{}
 	}
 	op := eval(expr[0], env)
 	args := make([]any, len(expr) - 1)
@@ -77,6 +79,7 @@ func apply(op any, args []any) any {
 	case Lambda:
 		return eval(f.body, f.env.bind(f.params, args))
 	case func (int, int) int:
+		// TODO Sanity checks
 		return f(args[0].(int), args[1].(int))
 	default:
 		log.Fatal("ERROR: Unknown operator: ", reflect.TypeOf(op))
@@ -84,14 +87,14 @@ func apply(op any, args []any) any {
 	}
 }
 
-func eval(expr any, env Env) any {
+func eval(expr any, env *Env) any {
 	switch e := expr.(type) {
 	case int:
 		return e
 	case string:
 		return evSym(e, env)
 	case LambdaExpr:
-		return evLambda(e, &env)
+		return evLambda(e, env)
 	case ListExpr:
 		return evList(e, env)
 	default:
@@ -113,6 +116,6 @@ func main() {
 			"*": func(x int, y int) int { return x * y },
 		},
 	}
-	res := eval(expr, globals)
+	res := eval(expr, &globals)
 	log.Println("Result:", res)
 }
