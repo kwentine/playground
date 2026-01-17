@@ -1,0 +1,19 @@
+#+TITLE: Zozot, a lisp
+
+Grammar:
+#+begin_example
+PROG ::= { EXPR }*
+EXPR ::= SYMBOL | NUMBER | LIST
+LIST ::= "(" { EXPR }* ")"
+#+end_example
+
+Special forms:
+- [X] lambda
+- [ ] cond
+- [ ] define
+
+* References
+- [[https://norvig.com/lispy.html][How to write a Lisp interpreter in Python]]
+- [[https://web.mit.edu/6.001/6.037/sicp.pdf][SICP]]
+  - The environment model for evaluation
+  - The metacircular evaluator
