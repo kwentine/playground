@@ -1,4 +1,4 @@
-package main
+package scan
 
 const (
 	KEYWORD rune = -(iota + 1)
