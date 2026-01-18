@@ -6,6 +6,8 @@ const (
 	OPEN_PAREN
 	CLOSE_PAREN
 	NUMBER
+	ERROR
+	NEWLINE
 	EOF
 )
 
