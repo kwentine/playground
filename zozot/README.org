@@ -17,3 +17,4 @@ Special forms:
 - [[https://web.mit.edu/6.001/6.037/sicp.pdf][SICP]]
   - The environment model for evaluation
   - The metacircular evaluator
+- Eli Bendersky's [[https://github.com/eliben/code-for-blog/tree/main/2014/tablegen-lexer-go][TableGen parser]]
