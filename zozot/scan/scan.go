@@ -8,6 +8,7 @@ const (
 	NUMBER
 	ERROR
 	NEWLINE
+	WHITESPACE
 	EOF
 )
 
