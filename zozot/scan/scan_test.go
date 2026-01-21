@@ -2,15 +2,14 @@ package scan
 
 import "testing"
 
-func TestScanner(t *testing.T) {
-	s := newScanner("(a 1)")
-	tokens := s.Scan()
+func TestScanString(t *testing.T) {
+	tokens := ScanString("(a 1)")
 	expected := []Token{
-		{OPEN_PAREN, "(", 0, 1},
-		{SYMBOL, "a", 1, 1},
-		{NUMBER, "1", 3, 1},
-		{CLOSE_PAREN, ")", 4, 1},
-		{EOF, "", 5, 1},
+		{OPEN_PAREN, "(", 1, 1},
+		{SYMBOL, "a", 1, 2},
+		{NUMBER, "1", 1, 4},
+		{CLOSE_PAREN, ")", 1, 5},
+		{EOF, "", 1, 6},
 	}
 	for i := range expected {
 		if tokens[i] != expected[i] {
@@ -20,18 +19,13 @@ func TestScanner(t *testing.T) {
 }
 
 
-func TestAddToken(t *testing.T) {
-	s := &Scanner{
-		chars: []rune{'('},
-		pos: 1,
-		line: 1,
-		tokens: make([]Token, 0, 1),
-	}
-	s.addToken(OPEN_PAREN, 0)
+func TestNextToken(t *testing.T) {
+	s := NewScanner("(")
+	tok := s.NextToken()
 	expected := Token{
 		OPEN_PAREN,
 		"(",
-		0,
+		1,
 		1,
 	}
 	if s.tokens[0] != expected {

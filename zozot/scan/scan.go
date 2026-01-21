@@ -3,7 +3,7 @@ package scan
 type TokenKind int
 
 const (
-	KEYWORD int = iota
+	KEYWORD TokenKind = iota
 	SYMBOL
 	OPEN_PAREN
 	CLOSE_PAREN
@@ -17,34 +17,33 @@ const (
 type Token struct {
 	kind TokenKind
 	literal string
-	pos int
 	line int
+	col int
 }
 
 type Scanner struct {
 	chars []rune
-	c rune
-	pos int
+	start int
 	next int
 	line int
+	col int
 }
 
 func NewScanner(source string) *Scanner {
 	chars := []rune(source)
 	return &Scanner{
-		chars: chars,
-		c: -1
-		pos: -1,
-		next: 0
+		chars: append(chars, -1),
+		next: 0,
 		line: 1,
+		col: 0,
 	}
 }
 
 // Must be called when pos is the last character of the token
-func (s *Scanner) makeToken(kind TokenKind, start int) {
+func (s *Scanner) makeToken(kind TokenKind) Token {
 	var literal string
-	if start < len(s.chars) && start < s.next {
-		literal = string(s.chars[start:s.next])
+	if s.start < s.next && s.next < len(s.chars) {
+		literal = string(s.chars[s.start:s.next])
 	} else {
 		literal = ""
 	}
@@ -54,59 +53,22 @@ func (s *Scanner) makeToken(kind TokenKind, start int) {
 	return Token{
 		kind: kind,
 		literal: literal,
-		pos: start,
+		col: s.col,
 		line: s.line,
 	}
 }
 
-func (s *Scanner) current() rune {
-	if s.pos >= len(s.chars) {
-		return -1
+func (s *Scanner) peek() rune {
+	return s.chars[s.next]
+}
+
+func (s *Scanner) getchar() rune {
+	var c rune
+	if c = s.chars[s.next]; c != -1 {
+		s.next++
+		s.col++
 	}
-	return s.chars[s.pos]
-}
-
-func (s *Scanner) step() {
-	s.pos++
-}
-
-func (s *Scanner) skipSpace() {
-	for c := s.current(); isWhitespace(c); c = s.current() {
-		if c == '\n' {
-			s.line++
-		}
-		s.step()
-	}
-}
-
-func (s *Scanner) paren() {
-	var k rune
-	start := s.pos
-	c := s.current()
-	if c == '(' {
-		k = OPEN_PAREN
-	} else {
-		k = CLOSE_PAREN
-	}
-	s.step()
-	s.addToken(k, start)
-}
-
-func (s *Scanner) number() {
-	start := s.pos
-	for isDigit(s.current()) {
-		s.step()
-	}
-	s.addToken(NUMBER, start)
-}
-
-// Current character is a letter
-func (s *Scanner) scanSymbol() {
-	start := s.pos
-	for c := s.GetChar(); isDigit(c) || isAlpha(c); c = s.GetChar() {}
-	// Step back
-	s.prev()
-	return s.makeToken(SYMBOL. start)
+	return c
 }
 
 func isWhitespace(c rune) bool {
@@ -125,37 +87,40 @@ func isKeyword(s string) bool {
 	return s == "lambda" || s == "define"
 }
 
-func (s *Scanner) GetChar() rune {
-	if s.next == len(s.chars) {
-		return -1
-	}
-	s.c = s.chars[s.next]
-	s.pos, s.next = s.next, s.next + 1
-	return s.c
-}
-
 func (s *Scanner) NextToken() Token {
 	var c rune
-	for c = s.GetChar(); isWhitespace(c); c := s.GetChar() {
+	s.start = s.next
+	for c = s.getchar(); isWhitespace(c); c = s.getchar() {
 		if c == '\n' {
 			s.line += 1
+			s.col = 0
 		}
+		s.start++
 	}
 	switch c {
+	case -1:
+		return s.makeToken(EOF)
 	case '(':
-		return s.makeToken(OPEN_PAREN, s.pos)
+		return s.makeToken(OPEN_PAREN)
 	case ')':
-		return s.makeToken(CLOSE_PAREN, s.pos)
+		return s.makeToken(CLOSE_PAREN)
 	default:
 		if isDigit(c) {
-			return s.scanNumber()
+			for ; isDigit(s.peek()); s.getchar() {}
+			return s.makeToken(NUMBER)
 		} else if isAlpha(c) {
-			s.scanSymbol()
+			for ; isDigit(s.peek()) || isAlpha(s.peek()); s.getchar() {}
+			return s.makeToken(SYMBOL)
 		}
 	}
+	return s.makeToken(ERROR)
 }
 
 func ScanString(source string) []Token {
-	s := newScanner(source)
-	return s.Scan()
+	s := NewScanner(source)
+	var tokens = make([]Token, len(s.chars))
+	for tok := s.NextToken(); tok.kind != EOF; tok = s.NextToken() {
+		tokens = append(tokens, tok)
+	}
+	return tokens
 }
