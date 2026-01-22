@@ -2,57 +2,48 @@ package scan
 
 
 func scanAll(code string) []Token {
-	var chars = []rune(code)
-	var charCount = len(chars)
-	var tokens = make([]Token, 0, charCount)
-	var kind rune
-	for start, next := 0, 0; start < charCount; start = next {
-		start = skipWhitespace(start, chars, charCount)
-		kind, next = scanToken(start, chars, charCount)
+	var chars = append([]rune(code), -1)
+	var tokens = make([]Token, 0, len(chars))
+	var kind TokenKind
+	for start, width := 0, 0; start < len(chars); start += width {
+		start += skipWhitespace(chars[start:])
+		kind, width = scanToken(chars[start:])
 		tokens = append(
 			tokens,
 			Token{
 				kind: kind,
-				pos: start,
-				literal: string(chars[start:next]),
+				literal: string(chars[start:start + width]),
 			},
 		)
 	}
 	return tokens
 }
 
-func charAt(pos int, buff []rune, len int) rune {
-	if pos >= len {
-		return EOF
-	}
-	return buff[pos]
-}
-
-func skipWhitespace(pos int, buff []rune, len int) int {
+func skipWhitespace(buff []rune) int {
 	return 0
 }
 
-func number(pos int, buff []rune, len int) (rune, int) {
+func number(buff []rune) (TokenKind, int) {
 	return 0, 0
 }
 
-func symbol(pos int, buff []rune, len int) (rune, int) {
+func symbol(buff []rune) (TokenKind, int) {
 	return 0, 0
 }
 
-func scanToken(start int, buff []rune, len int) (rune, int) {
-	c := charAt(start, buff, len)
-	switch c {
-	case '(': return OPEN_PAREN, start + 1
-	case ')': return CLOSE_PAREN, start + 1
-	case '\n': return NEWLINE, start + 1
+func scanToken(chars []rune) (TokenKind, int) {
+	switch c := chars[0]; c {
+	case '(': return OPEN_PAREN, 1
+	case ')': return CLOSE_PAREN, 1
+	case '\n': return NEWLINE, 1
+	case -1: return EOF, 1
 	default:
 		if isDigit(c) {
-			return number(start, buff, len)
+			return number(chars)
 		} else if isAlpha(c) {
-			return symbol(start, buff, len)
+			return symbol(chars)
 		} else {
-			return ERROR, start + 1
+			return ERROR, 1
 		}
 	}
 }

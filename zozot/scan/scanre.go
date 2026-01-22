@@ -5,8 +5,6 @@ import (
 	"strings"
 )
 
-type TokenKind = rune
-
 type Rule struct {
 	re *regexp.Regexp
 	kind TokenKind
@@ -20,12 +18,11 @@ var rules = [...]Rule{
 
 }
 
-func reScanToken(start int, source string) (kind TokenKind, width int){
-	s := source[start:]
+func reScanToken(source string) (kind TokenKind, width int){
 	width = 0
 	var loc []int
 	for _, rule := range rules {
-		loc = rule.re.FindStringIndex(s)
+		loc = rule.re.FindStringIndex(source)
 		if loc != nil {
 			if loc[1] > width {
 				width = loc[1]
@@ -45,7 +42,7 @@ func reScanAll(source string) []Token {
 	var kind TokenKind
 	var line int = 1
 	for start, width := 0, 0; start < len(source); start += width {
-		kind, width = reScanToken(start, source)
+		kind, width = reScanToken(source[start:])
 		if kind == WHITESPACE {
 			line += strings.Count(source[start:start + width], "\n")
 		} else {
@@ -53,7 +50,6 @@ func reScanAll(source string) []Token {
 				tokens,
 				Token{
 					kind: kind,
-					pos: start,
 					literal: source[start:start + width],
 					line: line,
 				},
@@ -64,7 +60,6 @@ func reScanAll(source string) []Token {
 		tokens,
 		Token{
 			kind: EOF,
-			pos: len(source),
 			literal: "",
 			line: line,
 		},

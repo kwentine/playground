@@ -118,9 +118,10 @@ func (s *Scanner) NextToken() Token {
 
 func ScanString(source string) []Token {
 	s := NewScanner(source)
-	var tokens = make([]Token, len(s.chars))
-	for tok := s.NextToken(); tok.kind != EOF; tok = s.NextToken() {
+	var tokens = make([]Token, 0, len(s.chars))
+	var tok Token
+	for tok = s.NextToken(); tok.kind != EOF; tok = s.NextToken() {
 		tokens = append(tokens, tok)
 	}
-	return tokens
+	return append(tokens, tok)
 }
