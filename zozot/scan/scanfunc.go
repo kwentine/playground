@@ -1,4 +1,4 @@
-package scan
+package main
 
 
 func scanAll(code string) []Token {
