@@ -6,19 +6,18 @@ import (
 )
 
 type Rule struct {
-	re *regexp.Regexp
+	re   *regexp.Regexp
 	kind TokenKind
 }
 
 var rules = [...]Rule{
 	{regexp.MustCompile(`^(lambda|define)\b`), KEYWORD},
 	{regexp.MustCompile(`^[a-zA-Z]+`), SYMBOL},
-	{regexp.MustCompile(`^[0-9]+`), NUMBER,},
+	{regexp.MustCompile(`^[0-9]+`), NUMBER},
 	{regexp.MustCompile(`^[ \t\n]+`), WHITESPACE},
-
 }
 
-func reScanToken(source string) (kind TokenKind, width int){
+func reScanToken(source string) (kind TokenKind, width int) {
 	width = 0
 	var loc []int
 	for _, rule := range rules {
@@ -36,7 +35,6 @@ func reScanToken(source string) (kind TokenKind, width int){
 	return kind, width
 }
 
-
 func reScanAll(source string) []Token {
 	var tokens []Token
 	var kind TokenKind
@@ -44,14 +42,14 @@ func reScanAll(source string) []Token {
 	for start, width := 0, 0; start < len(source); start += width {
 		kind, width = reScanToken(source[start:])
 		if kind == WHITESPACE {
-			line += strings.Count(source[start:start + width], "\n")
+			line += strings.Count(source[start:start+width], "\n")
 		} else {
 			tokens = append(
 				tokens,
 				Token{
-					kind: kind,
-					literal: source[start:start + width],
-					line: line,
+					kind:    kind,
+					literal: source[start : start+width],
+					line:    line,
 				},
 			)
 		}
@@ -59,9 +57,9 @@ func reScanAll(source string) []Token {
 	tokens = append(
 		tokens,
 		Token{
-			kind: EOF,
+			kind:    EOF,
 			literal: "",
-			line: line,
+			line:    line,
 		},
 	)
 	return tokens

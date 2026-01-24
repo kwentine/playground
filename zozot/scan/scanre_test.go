@@ -6,10 +6,10 @@ func TestReScanner(t *testing.T) {
 	s := "abc 123\ndef"
 	tokens := reScanAll(s)
 	expected := []Token{
-		{kind:SYMBOL, literal:"abc", line:1},
-		{kind:NUMBER, literal:"123", line:1},
-		{kind:SYMBOL, literal:"def", line:2},
-		{kind:EOF, literal:"", line:2},
+		{kind: SYMBOL, literal: "abc", line: 1},
+		{kind: NUMBER, literal: "123", line: 1},
+		{kind: SYMBOL, literal: "def", line: 2},
+		{kind: EOF, literal: "", line: 2},
 	}
 	if len(tokens) != len(expected) {
 		t.Error("Length mismatch")

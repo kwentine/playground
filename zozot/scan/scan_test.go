@@ -18,7 +18,6 @@ func TestScanString(t *testing.T) {
 	}
 }
 
-
 func TestNextToken(t *testing.T) {
 	s := NewScanner("(")
 	tok := s.NextToken()

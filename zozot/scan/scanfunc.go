@@ -1,6 +1,5 @@
 package main
 
-
 func scanAll(code string) []Token {
 	var chars = append([]rune(code), -1)
 	var tokens = make([]Token, 0, len(chars))
@@ -11,8 +10,8 @@ func scanAll(code string) []Token {
 		tokens = append(
 			tokens,
 			Token{
-				kind: kind,
-				literal: string(chars[start:start + width]),
+				kind:    kind,
+				literal: string(chars[start : start+width]),
 			},
 		)
 	}
@@ -23,25 +22,29 @@ func skipWhitespace(buff []rune) int {
 	return 0
 }
 
-func number(buff []rune) (TokenKind, int) {
+func fnumber(buff []rune) (TokenKind, int) {
 	return 0, 0
 }
 
-func symbol(buff []rune) (TokenKind, int) {
+func fsymbol(buff []rune) (TokenKind, int) {
 	return 0, 0
 }
 
 func scanToken(chars []rune) (TokenKind, int) {
 	switch c := chars[0]; c {
-	case '(': return OPEN_PAREN, 1
-	case ')': return CLOSE_PAREN, 1
-	case '\n': return NEWLINE, 1
-	case -1: return EOF, 1
+	case '(':
+		return OPEN_PAREN, 1
+	case ')':
+		return CLOSE_PAREN, 1
+	case '\n':
+		return NEWLINE, 1
+	case -1:
+		return EOF, 1
 	default:
 		if isDigit(c) {
-			return number(chars)
+			return fnumber(chars)
 		} else if isAlpha(c) {
-			return symbol(chars)
+			return fsymbol(chars)
 		} else {
 			return ERROR, 1
 		}

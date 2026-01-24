@@ -1,35 +1,36 @@
 package main
 
 import (
-	"os"
 	"fmt"
+	"os"
 )
 
 type TokenKind int
 
 const (
-	KEYWORD TokenKind = iota
-	SYMBOL
+	SYMBOL TokenKind = iota
+	NUMBER
+	LAMBDA
+	DEFINE
 	OPEN_PAREN
 	CLOSE_PAREN
-	NUMBER
 	ERROR
-	NEWLINE
-	WHITESPACE
 	EOF
+	// TODO: Remove
+	WHITESPACE
+	NEWLINE
+	KEYWORD
 )
 
 var tokenNames = [...]string{
-	KEYWORD: "KEYWORD",
-	SYMBOL: "SYMBOL",
-	OPEN_PAREN: "OPEN_PAREN",
+	LAMBDA:      "LAMBDA",
+	DEFINE:      "DEFINE",
+	SYMBOL:      "SYMBOL",
+	OPEN_PAREN:  "OPEN_PAREN",
 	CLOSE_PAREN: "CLOSE_PAREN",
-	NUMBER: "NUMBER",
-	ERROR: "ERROR",
-	NEWLINE: "NEWLINE",
-	WHITESPACE: "WHITESPACE",
-	EOF: "EOF",
-
+	NUMBER:      "NUMBER",
+	ERROR:       "ERROR",
+	EOF:         "EOF",
 }
 
 type Token struct {
@@ -65,8 +66,13 @@ func (s *Scanner) emitToken(kind TokenKind) Token {
 	} else {
 		literal = ""
 	}
-	if kind == SYMBOL && isKeyword(literal) {
-		kind = KEYWORD
+	if kind == SYMBOL {
+		switch literal {
+		case "lambda":
+			kind = LAMBDA
+		case "define":
+			kind = DEFINE
+		}
 	}
 	return Token{
 		kind:    kind,
@@ -76,11 +82,7 @@ func (s *Scanner) emitToken(kind TokenKind) Token {
 	}
 }
 
-func (s *Scanner) peek() rune {
-	return s.chars[s.next]
-}
-
-func (s *Scanner) getchar() rune {
+func (s *Scanner) advance() rune {
 	var c rune = s.chars[s.next]
 	if c != -1 {
 		s.next++
@@ -95,7 +97,11 @@ func (s *Scanner) rewind() {
 }
 
 func isWhitespace(c rune) bool {
-	return c == ' ' || c == '\t'
+	switch c {
+	case ' ', '\t', '\n', '\r':
+		return true
+	}
+	return false
 }
 
 func isDigit(c rune) bool {
@@ -103,7 +109,11 @@ func isDigit(c rune) bool {
 }
 
 func isAlpha(c rune) bool {
-	return 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z'
+	switch c {
+	case '*', '/', '+', '_':
+		return true
+	}
+	return 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z' || c == '*'
 }
 
 func isAlnum(c rune) bool {
@@ -116,13 +126,13 @@ func isKeyword(s string) bool {
 
 func (s *Scanner) NextToken() Token {
 	s.start = s.next
-	c := s.getchar()
-	for ; isWhitespace(c); c = s.getchar() {
+	c := s.advance()
+	for ; isWhitespace(c); c = s.advance() {
 		if c == '\n' {
 			s.line += 1
 			s.col = 0
 		}
-		s.start++
+		s.start = s.next
 	}
 	switch c {
 	case -1:
@@ -133,12 +143,12 @@ func (s *Scanner) NextToken() Token {
 		return s.emitToken(CLOSE_PAREN)
 	default:
 		if isDigit(c) {
-			for isDigit(s.getchar()) {
+			for isDigit(s.advance()) {
 			}
 			s.rewind()
 			return s.emitToken(NUMBER)
 		} else if isAlpha(c) {
-			for isAlnum(s.getchar()) {
+			for isAlnum(s.advance()) {
 			}
 			s.rewind()
 			return s.emitToken(SYMBOL)
@@ -160,17 +170,18 @@ func ScanString(source string) []Token {
 func main() {
 	args := os.Args[1:]
 	if len(args) != 1 {
-		fmt.Printf("Usage: %s FILENAME\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Usage: %s FILENAME\n", os.Args[0])
 		os.Exit(1)
 	}
 	filename := args[0]
 	bytes, err := os.ReadFile(filename)
 	if err != nil {
-		fmt.Printf("ERROR: %s\n", err.Error())
+		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err.Error())
 		os.Exit(1)
 	}
 	for _, tok := range ScanString(string(bytes)) {
 		fmt.Printf("%d:%d:%s %s\n", tok.line, tok.col, tokenNames[tok.kind], tok.literal)
 	}
-
+	s := NewScanner(string(bytes))
+	parse(s)
 }
