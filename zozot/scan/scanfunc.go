@@ -1,4 +1,4 @@
-package main
+package scan
 
 func scanAll(code string) []Token {
 	var chars = append([]rune(code), -1)
@@ -10,8 +10,8 @@ func scanAll(code string) []Token {
 		tokens = append(
 			tokens,
 			Token{
-				kind:    kind,
-				literal: string(chars[start : start+width]),
+				Kind:    kind,
+				Literal: string(chars[start : start+width]),
 			},
 		)
 	}

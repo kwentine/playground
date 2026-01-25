@@ -1,4 +1,4 @@
-package main
+package scan
 
 import (
 	"regexp"
@@ -47,9 +47,9 @@ func reScanAll(source string) []Token {
 			tokens = append(
 				tokens,
 				Token{
-					kind:    kind,
-					literal: source[start : start+width],
-					line:    line,
+					Kind:    kind,
+					Literal: source[start : start+width],
+					Line:    line,
 				},
 			)
 		}
@@ -57,9 +57,9 @@ func reScanAll(source string) []Token {
 	tokens = append(
 		tokens,
 		Token{
-			kind:    EOF,
-			literal: "",
-			line:    line,
+			Kind:    EOF,
+			Literal: "",
+			Line:    line,
 		},
 	)
 	return tokens

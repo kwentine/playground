@@ -1,9 +1,10 @@
-package main
+package parse
 
 import (
 	"fmt"
 	"os"
 	"strings"
+	scan "zozot/scan"
 )
 
 // prog   ::= expr prog | ""
@@ -12,29 +13,37 @@ import (
 // lambda ::= "lambda" "(" args ")" expr
 // args   ::= symbol args | ""
 // define ::= "define" symbol expr
-var current Token
+var current scan.Token
 
-var s *Scanner
+var s *scan.Scanner
+
+var depth int
+
+var indentStep string = "  "
+
+func indent() string {
+	return strings.Repeat(indentStep, depth)
+}
 
 func prog() string {
 	parts := make([]string, 0)
 	for {
-		switch current.kind {
-		case OPEN_PAREN, NUMBER, SYMBOL:
+		switch current.Kind {
+		case scan.OPEN_PAREN, scan.NUMBER, scan.SYMBOL:
 			parts = append(parts, expr())
 		default:
-			return strings.Join(parts, " ")
+			return strings.Join(parts, "\n" + indent())
 		}
 	}
 }
 
 func expr() string {
-	switch current.kind {
-	case OPEN_PAREN:
+	switch current.Kind {
+	case scan.OPEN_PAREN:
 		return list()
-	case NUMBER:
+	case scan.NUMBER:
 		return number()
-	case SYMBOL:
+	case scan.SYMBOL:
 		return symbol()
 	default:
 		panic("ERROR")
@@ -42,67 +51,69 @@ func expr() string {
 }
 
 func list() string {
-	match(OPEN_PAREN)
+	match(scan.OPEN_PAREN)
 	var inner string
-	switch current.kind {
-	case LAMBDA:
+	depth += 1
+	switch current.Kind {
+	case scan.LAMBDA:
 		inner = lambda()
-	case DEFINE:
+	case scan.DEFINE:
 		inner = define()
 	default:
 		inner = prog()
 	}
-	match(CLOSE_PAREN)
+	match(scan.CLOSE_PAREN)
+	depth -= 1
 	return "(" + inner + ")"
 }
 
 func lambda() string {
-	match(LAMBDA)
-	match(OPEN_PAREN)
+	match(scan.LAMBDA)
+	match(scan.OPEN_PAREN)
 	args := args()
-	match(CLOSE_PAREN)
+	match(scan.CLOSE_PAREN)
 	body := expr()
-	return "lambda (" + args + ") " + body
+	return "lambda (" + args + ") \n" + indent() + body
 }
 
 func args() string {
 	parts := make([]string, 0)
-	for current.kind == SYMBOL {
+	for current.Kind == scan.SYMBOL {
 		parts = append(parts, symbol())
 	}
 	return strings.Join(parts, " ")
 }
 
 func define() string {
-	match(DEFINE)
+	match(scan.DEFINE)
 	return "define " + symbol() + " " + expr()
 }
 
 func number() string {
-	val := current.literal
-	match(NUMBER)
+	val := current.Literal
+	match(scan.NUMBER)
 	return "\x1b[34m" + val + "\x1b[0m"
 }
 
 func symbol() string {
-	val := current.literal
-	match(SYMBOL)
+	val := current.Literal
+	match(scan.SYMBOL)
 	return "\x1b[31m" + val + "\x1b[0m"
 }
 
-func match(kind TokenKind) {
-	if current.kind == kind {
+func match(kind scan.TokenKind) {
+	if current.Kind == kind {
 		current = s.NextToken()
 	} else {
-		fmt.Fprintf(os.Stderr, "ERROR:%d:%d:%s expected %s\n", s.line, s.col, tokenNames[current.kind], tokenNames[kind])
+		fmt.Fprintf(os.Stderr, "ERROR:%d:%d:%s expected %s\n", current.Line, current.Col, scan.TokenNames[current.Kind], scan.TokenNames[kind])
 		os.Exit(1)
 	}
 }
 
-func parse(scanner *Scanner) {
+func Parse(scanner *scan.Scanner) {
 	s = scanner
 	current = s.NextToken()
 	res := prog()
-	match(EOF)
+	match(scan.EOF)
 	fmt.Println(res)
 }

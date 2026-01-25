@@ -1,9 +1,4 @@
-package main
-
-import (
-	"fmt"
-	"os"
-)
+package scan
 
 type TokenKind int
 
@@ -22,7 +17,7 @@ const (
 	KEYWORD
 )
 
-var tokenNames = [...]string{
+var TokenNames = [...]string{
 	LAMBDA:      "LAMBDA",
 	DEFINE:      "DEFINE",
 	SYMBOL:      "SYMBOL",
@@ -34,10 +29,10 @@ var tokenNames = [...]string{
 }
 
 type Token struct {
-	kind    TokenKind
-	literal string
-	line    int
-	col     int
+	Kind    TokenKind
+	Literal string
+	Line    int
+	Col     int
 }
 
 type Scanner struct {
@@ -45,16 +40,13 @@ type Scanner struct {
 	start int
 	next  int
 	line  int
-	col   int
+	lineStart int
 }
 
 func NewScanner(source string) *Scanner {
 	chars := []rune(source)
 	return &Scanner{
 		chars: append(chars, -1),
-		next:  0,
-		line:  1,
-		col:   0,
 	}
 }
 
@@ -75,10 +67,10 @@ func (s *Scanner) emitToken(kind TokenKind) Token {
 		}
 	}
 	return Token{
-		kind:    kind,
-		literal: literal,
-		col:     s.col,
-		line:    s.line,
+		Kind:    kind,
+		Literal: literal,
+		Col:     s.start - s.lineStart + 1,
+		Line:    s.line + 1,
 	}
 }
 
@@ -86,14 +78,12 @@ func (s *Scanner) advance() rune {
 	var c rune = s.chars[s.next]
 	if c != -1 {
 		s.next++
-		s.col++
 	}
 	return c
 }
 
 func (s *Scanner) rewind() {
 	s.next--
-	s.col--
 }
 
 func isWhitespace(c rune) bool {
@@ -130,7 +120,7 @@ func (s *Scanner) NextToken() Token {
 	for ; isWhitespace(c); c = s.advance() {
 		if c == '\n' {
 			s.line += 1
-			s.col = 0
+			s.lineStart = s.next
 		}
 		s.start = s.next
 	}
@@ -161,27 +151,8 @@ func ScanString(source string) []Token {
 	s := NewScanner(source)
 	var tokens = make([]Token, 0, len(s.chars))
 	var tok Token
-	for tok = s.NextToken(); tok.kind != EOF; tok = s.NextToken() {
+	for tok = s.NextToken(); tok.Kind != EOF; tok = s.NextToken() {
 		tokens = append(tokens, tok)
 	}
 	return append(tokens, tok)
-}
-
-func main() {
-	args := os.Args[1:]
-	if len(args) != 1 {
-		fmt.Fprintf(os.Stderr, "Usage: %s FILENAME\n", os.Args[0])
-		os.Exit(1)
-	}
-	filename := args[0]
-	bytes, err := os.ReadFile(filename)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err.Error())
-		os.Exit(1)
-	}
-	for _, tok := range ScanString(string(bytes)) {
-		fmt.Printf("%d:%d:%s %s\n", tok.line, tok.col, tokenNames[tok.kind], tok.literal)
-	}
-	s := NewScanner(string(bytes))
-	parse(s)
 }
