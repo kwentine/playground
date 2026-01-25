@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"strconv"
 	scan "zozot/scan"
 )
 
@@ -17,27 +18,37 @@ var current scan.Token
 
 var s *scan.Scanner
 
-var depth int
-
-var indentStep string = "  "
-
-func indent() string {
-	return strings.Repeat(indentStep, depth)
+type Lambda struct {
+	params []Symbol,
+	body any,
 }
 
-func prog() string {
-	parts := make([]string, 0)
+type Define struct {
+	sym Symbol
+	val any
+}
+
+type List struct {
+	elems []any
+}
+
+type Number int
+
+type Symbol string
+
+func prog() []any {
+	parts := make([]any, 0)
 	for {
 		switch current.Kind {
 		case scan.OPEN_PAREN, scan.NUMBER, scan.SYMBOL:
 			parts = append(parts, expr())
 		default:
-			return strings.Join(parts, "\n" + indent())
+			return parts
 		}
 	}
 }
 
-func expr() string {
+func expr() any {
 	switch current.Kind {
 	case scan.OPEN_PAREN:
 		return list()
@@ -50,21 +61,20 @@ func expr() string {
 	}
 }
 
-func list() string {
+func list() any {
 	match(scan.OPEN_PAREN)
-	var inner string
-	depth += 1
 	switch current.Kind {
 	case scan.LAMBDA:
-		inner = lambda()
+		res := lambda()
 	case scan.DEFINE:
-		inner = define()
+		res := define()
 	default:
-		inner = prog()
+		res := List{
+			elems: prog(),
+		}
 	}
 	match(scan.CLOSE_PAREN)
-	depth -= 1
-	return "(" + inner + ")"
+	return res
 }
 
 func lambda() string {
@@ -73,32 +83,38 @@ func lambda() string {
 	args := args()
 	match(scan.CLOSE_PAREN)
 	body := expr()
-	return "lambda (" + args + ") \n" + indent() + body
+	return Lambda{
+		args: args,
+		body: body
+	}
 }
 
 func args() string {
-	parts := make([]string, 0)
+	parts := make([]Symbol, 0)
 	for current.Kind == scan.SYMBOL {
 		parts = append(parts, symbol())
 	}
-	return strings.Join(parts, " ")
+	return parts
 }
 
-func define() string {
+func define() Define {
 	match(scan.DEFINE)
-	return "define " + symbol() + " " + expr()
+	return Define{
+		sym: symbol(),
+		val: expr(),
+	}
 }
 
-func number() string {
+func number() Number {
 	val := current.Literal
 	match(scan.NUMBER)
-	return "\x1b[34m" + val + "\x1b[0m"
+	return Number(strconv.Atoi(val))
 }
 
-func symbol() string {
+func symbol() Symbol {
 	val := current.Literal
 	match(scan.SYMBOL)
-	return "\x1b[31m" + val + "\x1b[0m"
+	return Symbol(val)
 }
 
 func match(kind scan.TokenKind) {
