@@ -44,16 +44,15 @@ type Scanner struct {
 }
 
 func NewScanner(source string) *Scanner {
-	chars := []rune(source)
 	return &Scanner{
-		chars: append(chars, -1),
+		chars: []rune(source),
 	}
 }
 
 // Must be called when pos is the last character of the token
 func (s *Scanner) emitToken(kind TokenKind) Token {
 	var literal string
-	if s.start < s.next && s.next < len(s.chars) {
+	if s.start < s.next && s.next <= len(s.chars) {
 		literal = string(s.chars[s.start:s.next])
 	} else {
 		literal = ""
@@ -75,9 +74,12 @@ func (s *Scanner) emitToken(kind TokenKind) Token {
 }
 
 func (s *Scanner) advance() rune {
-	var c rune = s.chars[s.next]
-	if c != -1 {
-		s.next++
+	var c rune
+	if s.next < len(s.chars) {
+		c = s.chars[s.next]
+		s.next ++
+	} else {
+		c = -1
 	}
 	return c
 }
@@ -149,7 +151,7 @@ func (s *Scanner) NextToken() Token {
 
 func ScanString(source string) []Token {
 	s := NewScanner(source)
-	var tokens = make([]Token, 0, len(s.chars))
+	var tokens = make([]Token, 0, len(s.chars) + 1)
 	var tok Token
 	for tok = s.NextToken(); tok.Kind != EOF; tok = s.NextToken() {
 		tokens = append(tokens, tok)
