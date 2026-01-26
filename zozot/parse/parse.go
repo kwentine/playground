@@ -3,7 +3,6 @@ package parse
 import (
 	"fmt"
 	"os"
-	"strings"
 	"strconv"
 	scan "zozot/scan"
 )
@@ -19,17 +18,17 @@ var current scan.Token
 var s *scan.Scanner
 
 type Lambda struct {
-	params []Symbol,
-	body any,
+	Params []Symbol
+	Body any
 }
 
 type Define struct {
-	sym Symbol
-	val any
+	Sym Symbol
+	Val any
 }
 
 type List struct {
-	elems []any
+	Elems []any
 }
 
 type Number int
@@ -37,13 +36,13 @@ type Number int
 type Symbol string
 
 func prog() []any {
-	parts := make([]any, 0)
+ 	elems := make([]any, 0)
 	for {
 		switch current.Kind {
 		case scan.OPEN_PAREN, scan.NUMBER, scan.SYMBOL:
-			parts = append(parts, expr())
+			elems = append(elems, expr())
 		default:
-			return parts
+			return elems
 		}
 	}
 }
@@ -63,33 +62,34 @@ func expr() any {
 
 func list() any {
 	match(scan.OPEN_PAREN)
+	var res any
 	switch current.Kind {
 	case scan.LAMBDA:
-		res := lambda()
+		res = lambda()
 	case scan.DEFINE:
-		res := define()
+		res = define()
 	default:
-		res := List{
-			elems: prog(),
+		res = List{
+			Elems: prog(),
 		}
 	}
 	match(scan.CLOSE_PAREN)
 	return res
 }
 
-func lambda() string {
+func lambda() Lambda {
 	match(scan.LAMBDA)
 	match(scan.OPEN_PAREN)
 	args := args()
 	match(scan.CLOSE_PAREN)
 	body := expr()
 	return Lambda{
-		args: args,
-		body: body
+		Params: args,
+		Body: body,
 	}
 }
 
-func args() string {
+func args() []Symbol {
 	parts := make([]Symbol, 0)
 	for current.Kind == scan.SYMBOL {
 		parts = append(parts, symbol())
@@ -100,15 +100,20 @@ func args() string {
 func define() Define {
 	match(scan.DEFINE)
 	return Define{
-		sym: symbol(),
-		val: expr(),
+		Sym: symbol(),
+		Val: expr(),
 	}
 }
 
 func number() Number {
 	val := current.Literal
 	match(scan.NUMBER)
-	return Number(strconv.Atoi(val))
+	i, err := strconv.Atoi(val)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "ERROR:Invalid number literal %s", val)
+		os.Exit(1)
+	}
+	return Number(i)
 }
 
 func symbol() Symbol {
