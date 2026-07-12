@@ -1,0 +1,7 @@
+Today I want to learn how to instanciate a Kubernetes Go client configured through the command line.
+
+- [ ] From the default Kubeconfig file
+  - override context
+  - override the namespace
+- [ ] Given server URL and bearer token
+- [ ] Given server URL, server cert, client cert
